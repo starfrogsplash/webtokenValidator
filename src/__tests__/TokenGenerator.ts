@@ -11,7 +11,7 @@ class TokenGenerator {
     });
   }
 
-  get jwk(){
+  get jwk() {
     return this.privateKey.toJSON();
   }
 
@@ -23,7 +23,7 @@ class TokenGenerator {
     )
       .update(payloadJson)
       .final();
-    return result
+    return result;
   }
 }
 

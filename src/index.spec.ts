@@ -5,8 +5,8 @@ import TokenGenerator from "./__tests__/TokenGenerator";
 
 const tokenGenerator = new TokenGenerator();
 
-let options
-let claims
+let options;
+let claims;
 
 const currentTime = Math.round(Date.now() / 1000);
 
@@ -15,10 +15,10 @@ beforeAll(async () => {
 });
 
 beforeEach(async () => {
-   options = {
+  options = {
     issuer: "http://issuer.com",
     audience: "audience",
-    algorithms: "RS256"
+    algorithms: "RS256",
   };
 
   claims = {
@@ -34,7 +34,6 @@ beforeEach(async () => {
     .reply(200, { keys: [tokenGenerator.jwk] });
 });
 
-
 describe("A request with a valid access token", () => {
   test("should add a user object containing the token claims to the request", async () => {
     const res = createResponse();
@@ -45,12 +44,12 @@ describe("A request with a valid access token", () => {
         Authorization: `Bearer ${token}`,
       },
     });
-    
+
     const jwtHeader = {
-      "alg": "RS256",
-      "kid": expect.any(String),
-      "typ": "jwt"
-    }
+      alg: "RS256",
+      kid: expect.any(String),
+      typ: "jwt",
+    };
     await authorise(options)(req, res, next);
     expect(req.user).toHaveProperty("payload", claims);
     expect(req.user).toHaveProperty("header", jwtHeader);
@@ -68,10 +67,12 @@ describe("A request with a unsupported algorithm", () => {
         Authorization: `Bearer ${token}`,
       },
     });
-    
-    options.algorithms = 'blah'
 
-    await expect(authorise(options)(req, res, next)).rejects.toThrow('invalid Algorithm')
+    options.algorithms = "blah";
+
+    await expect(authorise(options)(req, res, next)).rejects.toThrow(
+      "invalid Algorithm"
+    );
   });
 });
 
@@ -79,8 +80,8 @@ describe("Issuer responds with a public key which does not correspond with the p
   test("should return 401", async () => {
     const res = createResponse();
     const next = jest.fn();
-    const newTokenGen = new TokenGenerator() 
-    await newTokenGen.init()
+    const newTokenGen = new TokenGenerator();
+    await newTokenGen.init();
     const token = await newTokenGen.createSignedJWT(claims);
     const req = createRequest({
       headers: {
@@ -90,8 +91,7 @@ describe("Issuer responds with a public key which does not correspond with the p
 
     await authorise(options)(req, res, next);
     expect(req).not.toHaveProperty("user");
-    expect(res.statusCode).toEqual(401)
-
+    expect(res.statusCode).toEqual(401);
   });
 });
 
@@ -99,7 +99,7 @@ describe("A request with a inValid token", () => {
   test("should return 401", async () => {
     const res = createResponse();
     const next = jest.fn();
-    const token = 'askjdhaskdhasd434';
+    const token = "askjdhaskdhasd434";
     const req = createRequest({
       headers: {
         Authorization: `Bearer ${token}`,
@@ -108,8 +108,7 @@ describe("A request with a inValid token", () => {
 
     await authorise(options)(req, res, next);
     expect(req).not.toHaveProperty("user");
-    expect(res.statusCode).toEqual(401)
-
+    expect(res.statusCode).toEqual(401);
   });
 });
 
@@ -125,35 +124,30 @@ describe("no token supplied", () => {
 
     await authorise(options)(req, res, next);
     expect(req).not.toHaveProperty("user");
-    expect(res.statusCode).toEqual(400)
+    expect(res.statusCode).toEqual(400);
   });
 });
 
 describe("internal server error", () => {
   test("should return 503", async () => {
-    nock.restore()
+    nock.restore();
 
-    nock(options.issuer)
-    .persist()
-    .get("/.well-known/jwks.json")
-    .reply(503);
+    nock(options.issuer).persist().get("/.well-known/jwks.json").reply(503);
 
     const res = createResponse();
     const next = jest.fn();
-    const newTokenGen = new TokenGenerator() 
-    await newTokenGen.init()
+    const newTokenGen = new TokenGenerator();
+    await newTokenGen.init();
     const token = await newTokenGen.createSignedJWT(claims);
     const req = createRequest({
       headers: {
         Authorization: `Bearer ${token}`,
       },
     });
-    
 
     await authorise(options)(req, res, next);
     expect(req).not.toHaveProperty("user");
-    expect(res.statusCode).toEqual(503)
-
+    expect(res.statusCode).toEqual(503);
   });
 });
 
