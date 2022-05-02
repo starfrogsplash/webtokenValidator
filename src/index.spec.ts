@@ -4,24 +4,30 @@ import authorise from "./index";
 import TokenGenerator from "./__tests__/TokenGenerator";
 
 const tokenGenerator = new TokenGenerator();
-const options = {
-  issuer: "http://issuer.com",
-  audience: "audience",
-  algorithms: "RS256",
-};
+
+let options
+let claims
+
 const currentTime = Math.round(Date.now() / 1000);
-const claims = {
-  sub: "foo",
-  iss: options.issuer,
-  aud: options.audience,
-  exp: currentTime + 10,
-};
 
 beforeAll(async () => {
   await tokenGenerator.init();
 });
 
 beforeEach(async () => {
+   options = {
+    issuer: "http://issuer.com",
+    audience: "audience",
+    algorithms: "RS256"
+  };
+
+  claims = {
+    sub: "foo",
+    iss: options.issuer,
+    aud: options.audience,
+    exp: currentTime + 10,
+  };
+
   nock(options.issuer)
     .persist()
     .get("/.well-known/jwks.json")
@@ -49,6 +55,23 @@ describe("A request with a valid access token", () => {
     expect(req.user).toHaveProperty("payload", claims);
     expect(req.user).toHaveProperty("header", jwtHeader);
     expect(req.user).toHaveProperty("signature", expect.any(String));
+  });
+});
+
+describe("A request with a unsupported algorithm", () => {
+  test("throw error", async () => {
+    const res = createResponse();
+    const next = jest.fn();
+    const token = await tokenGenerator.createSignedJWT(claims);
+    const req = createRequest({
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    });
+    
+    options.algorithms = 'blah'
+
+    await expect(authorise(options)(req, res, next)).rejects.toThrow('invalid Algorithm')
   });
 });
 
